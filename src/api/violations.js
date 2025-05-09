@@ -28,6 +28,6 @@ export const addViolation = async ({ description, imageUrl, latitude, longitude 
 };
 export const getViolations = async () => {
   const response = await fetch(`${API_URL}/violations`);
-  if (!response.ok) throw new Error('Не вдалося завантажити правопорушення');
+  if (!response.ok) throw new Error('Ошибка загрузки');
   return await response.json();
 };

@@ -1,80 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Modal, Text, FlatList, Button } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  StyleSheet,
+  Modal,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  Alert
+} from 'react-native';
 import Header from './Header';
 import Day from './Day';
-import { API_URL } from '../../api/config';
+import { API_URL } from '../api/config';
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [violations, setViolations] = useState({});
+  const [violationsMap, setViolationsMap] = useState({});
+  const [violations, setViolations] = useState([]);
   const [selectedViolations, setSelectedViolations] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const isMounted = useRef(true);
 
-  // Загрузка нарушений
+  // Загрузка всех нарушений на месяц
   const loadViolations = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
       const month = currentDate.getMonth() + 1;
       const year = currentDate.getFullYear();
-      
-      const response = await fetch(
-        `${API_URL}/violations?month=${month}&year=${year}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
+
+      const response = await fetch(`${API_URL}/violations?month=${month}&year=${year}`);
+      if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
+
       const data = await response.json();
-      const violationsMap = data.reduce((acc, v) => {
+
+      const map = {};
+      data.forEach(v => {
         const day = new Date(v.date).getDate();
-        acc[day] = true;
-        return acc;
-      }, {});
-      
-      setViolations(violationsMap);
-    } catch (error) {
-      console.error('Ошибка:', error);
+        map[day] = true;
+      });
+
+      if (isMounted.current) {
+        setViolations(data);
+        setViolationsMap(map);
+      }
+    } catch (err) {
+      console.error('[Calendar] Ошибка загрузки:', err.message);
     }
   };
 
-  useFocusEffect(() => {
-    loadViolations();
-  });
+  // Обработка нажатия на день
+  const handleDayPress = (day) => {
+    const selected = violations.filter(v => {
+      const date = new Date(v.date);
+      return (
+        date.getDate() === day &&
+        date.getMonth() === currentDate.getMonth() &&
+        date.getFullYear() === currentDate.getFullYear()
+      );
+    });
 
-  // Обработчик нажатия на день
-  const handleDayPress = async (day) => {
-    const token = await AsyncStorage.getItem('token');
-    const date = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      day
-    ).toISOString();
-    
-    const response = await fetch(
-      `${API_URL}/violations?date=${date}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    
-    const data = await response.json();
-    setSelectedViolations(data);
+    setSelectedViolations(selected);
     setModalVisible(true);
   };
 
-  // Рендер дней месяца
+  // Отображение одного нарушения
+  const renderViolationItem = ({ item }) => {
+    const parsedDate = new Date(item.date.replace(' ', 'T') + 'Z');
+
+    return (
+      <View style={styles.item}>
+        <Text style={styles.itemTitle}>Нарушение #{item.id}</Text>
+        <Text style={styles.itemText}>{item.description}</Text>
+        <Text style={styles.itemDate}>
+          {parsedDate.toLocaleDateString('uk-UA', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </Text>
+        {item.imageUrl && (
+          <Image
+            source={{ uri: item.imageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+        )}
+      </View>
+    );
+  };
+
+  // Генерация дней месяца
   const renderDays = () => {
     const days = [];
-    const daysInMonth = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth() + 1,
-      0
-    ).getDate();
+    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
 
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(
         <Day
           key={day}
           day={day}
-          hasViolation={violations[day]}
+          hasViolation={violationsMap[day]}
           onPress={() => handleDayPress(day)}
         />
       );
@@ -82,6 +108,16 @@ const Calendar = () => {
 
     return days;
   };
+
+  // Загрузка данных при монтировании и смене месяца
+  useEffect(() => {
+    isMounted.current = true;
+    loadViolations();
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, [currentDate]);
 
   return (
     <View style={styles.container}>
@@ -98,25 +134,36 @@ const Calendar = () => {
           setCurrentDate(newDate);
         }}
       />
-      
+
       <View style={styles.daysContainer}>
         {renderDays()}
       </View>
 
-      <Modal visible={modalVisible} transparent>
-        <View style={styles.modal}>
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Нарушения за {new Date(selectedViolations[0]?.date).toLocaleDateString('uk-UA')}
+            </Text>
+
             <FlatList
               data={selectedViolations}
-              keyExtractor={item => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.item}>
-                  <Text>{new Date(item.date).toLocaleDateString()}</Text>
-                  <Text>{item.description}</Text>
-                </View>
-              )}
+              renderItem={renderViolationItem}
+              keyExtractor={item => item.id.toString()}
+              contentContainerStyle={styles.listContent}
             />
-            <Button title="Закрыть" onPress={() => setModalVisible(false)} />
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Закрыть</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -127,18 +174,57 @@ const Calendar = () => {
 const styles = StyleSheet.create({
   container: { padding: 15 },
   daysContainer: { flexDirection: 'row', flexWrap: 'wrap' },
-  modal: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    backgroundColor: 'rgba(0,0,0,0.5)' 
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)'
   },
-  modalContent: { 
-    backgroundColor: 'white', 
-    margin: 20, 
-    padding: 15, 
-    borderRadius: 10 
+  modalContent: {
+    backgroundColor: 'white',
+    margin: 20,
+    padding: 15,
+    borderRadius: 10
   },
-  item: { padding: 10, borderBottomWidth: 1 }
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10
+  },
+  item: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc'
+  },
+  itemTitle: {
+    fontWeight: 'bold'
+  },
+  itemText: {
+    marginVertical: 5
+  },
+  itemDate: {
+    fontSize: 12,
+    color: '#666'
+  },
+  image: {
+    marginTop: 10,
+    height: 150,
+    borderRadius: 5
+  },
+  closeButton: {
+    marginTop: 15,
+    alignSelf: 'center',
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5
+  },
+  closeButtonText: {
+    color: 'white',
+    fontWeight: 'bold'
+  },
+  listContent: {
+    paddingBottom: 10
+  }
 });
 
 export default Calendar;

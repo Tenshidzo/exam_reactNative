@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Button, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import { Calendar } from 'react-native-calendars';
+import Calendar from '../calendar/Calendar';
 import { useNavigation } from '@react-navigation/native';
 
 export default function PublicScreen() {
@@ -19,7 +19,6 @@ export default function PublicScreen() {
           longitudeDelta: 0.0421,
         }}
       >
-        {/* Пример маркера */}
         <Marker
           coordinate={{ latitude: 50.4501, longitude: 30.5234 }}
           title="Порушення"

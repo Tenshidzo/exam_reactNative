@@ -1,5 +1,13 @@
 import React, { useContext, useState } from 'react';
-import { View, TextInput, Button, Text } from 'react-native';
+import {
+  View,
+  TextInput,
+  Button,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator
+} from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 
 export default function RegisterScreen({ navigation }) {
@@ -7,24 +15,122 @@ export default function RegisterScreen({ navigation }) {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const { signUp } = useContext(AuthContext);
 
   const handleRegister = async () => {
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
+      return alert('Пожалуйста, заполните все поля');
+    }
     try {
+      setLoading(true);
       await signUp({ firstName, lastName, email, password });
+      navigation.navigate('HomeScreen');
     } catch (error) {
-      alert('Registration failed');
+      alert('Ошибка регистрации');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View>
-      <TextInput placeholder="First Name" value={firstName} onChangeText={setFirstName} />
-      <TextInput placeholder="Last Name" value={lastName} onChangeText={setLastName} />
-      <TextInput placeholder="Email" value={email} onChangeText={setEmail} />
-      <TextInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-      <Button title="Register" onPress={handleRegister} />
-      <Text onPress={() => navigation.navigate('Login')}>Already have an account? Login</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Регистрация</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Имя"
+        value={firstName}
+        onChangeText={setFirstName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Фамилия"
+        value={lastName}
+        onChangeText={setLastName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Пароль"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleRegister}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Зарегистрироваться</Text>
+        )}
+      </TouchableOpacity>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Уже есть аккаунт?</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.footerLink}> Войти</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f9f9f9'
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20
+  },
+  input: {
+    height: 50,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    backgroundColor: '#fff'
+  },
+  button: {
+    backgroundColor: '#2196F3',
+    height: 50,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20
+  },
+  footerText: {
+    color: '#666'
+  },
+  footerLink: {
+    color: '#2196F3',
+    fontWeight: 'bold'
+  }
+});

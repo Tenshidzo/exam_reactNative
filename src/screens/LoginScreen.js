@@ -13,9 +13,9 @@ export default function LoginScreen({ navigation }) {
         try {
           setLoading(true);
          const result = await signIn({ email, password });
-         console.log('[LoginScreen] ✅ signIn result:', result);
+         console.log('[LoginScreen] signIn result:', result);
         } catch (err) {
-          console.log('[LoginScreen] ❌ error', err);
+          console.log('[LoginScreen] error', err);
           Alert.alert('Помилка', err.message);
         } finally {
           setLoading(false);

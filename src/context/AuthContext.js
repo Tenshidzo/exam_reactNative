@@ -9,7 +9,6 @@ export const AuthProvider = ({ children }) => {
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(false); 
 
-  // Добавьте этот метод для инициализации
   const initAuth = async () => {
     setLoading(true);
     try {
@@ -33,8 +32,8 @@ export const AuthProvider = ({ children }) => {
   const signIn = async ({ email, password }) => {
     try {
       const { token: tk, userId: uid } = await api.login({ email, password });
-      await AsyncStorage.setItem('token', tk); // Сохраняем токен
-      await AsyncStorage.setItem('userId', uid.toString()); // Сохраняем ID
+      await AsyncStorage.setItem('token', tk); 
+      await AsyncStorage.setItem('userId', uid.toString());
       setToken(tk);
       setUserId(uid);
     } catch (error) {
@@ -43,11 +42,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Аналогично обновите signUp
   const signUp = async ({ firstName, lastName, email, password }) => {
     try {
       const { userId: uid } = await api.register({ firstName, lastName, email, password });
-      const { token: tk } = await api.login({ email, password }); // Логиним после регистрации
+      const { token: tk } = await api.login({ email, password });
       await AsyncStorage.setItem('token', tk);
       await AsyncStorage.setItem('userId', uid.toString());
       setToken(tk);

@@ -21,7 +21,6 @@ const Calendar = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const isMounted = useRef(true);
 
-  // Загрузка всех нарушений на месяц
   const loadViolations = async () => {
     try {
       const month = currentDate.getMonth() + 1;
@@ -47,7 +46,6 @@ const Calendar = () => {
     }
   };
 
-  // Обработка нажатия на день
   const handleDayPress = (day) => {
     const selected = violations.filter(v => {
       const date = new Date(v.date);
@@ -62,7 +60,6 @@ const Calendar = () => {
     setModalVisible(true);
   };
 
-  // Отображение одного нарушения
   const renderViolationItem = ({ item }) => {
     const parsedDate = new Date(item.date.replace(' ', 'T') + 'Z');
 
@@ -90,7 +87,6 @@ const Calendar = () => {
     );
   };
 
-  // Генерация дней месяца
   const renderDays = () => {
     const days = [];
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
@@ -108,8 +104,6 @@ const Calendar = () => {
 
     return days;
   };
-
-  // Загрузка данных при монтировании и смене месяца
   useEffect(() => {
     isMounted.current = true;
     loadViolations();

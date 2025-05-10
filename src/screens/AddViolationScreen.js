@@ -54,12 +54,10 @@ export default function AddViolationScreen() {
       
       const formData = new FormData();
       
-      // Добавляем текстовые поля
       formData.append('description', description);
       formData.append('latitude', location.latitude.toString());
       formData.append('longitude', location.longitude.toString());
-  
-      // Добавляем изображение если есть
+
       if (image) {
         formData.append('image', {
           uri: image,

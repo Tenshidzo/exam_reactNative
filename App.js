@@ -1,10 +1,10 @@
-import React, { useContext } from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { AuthProvider, AuthContext } from './src/context/AuthContext';
-import AuthNavigator from './src/navigation/AuthNavigator';
-import AppNavigator from './src/navigation/AppNavigator';
-import { ActivityIndicator, View, Button } from 'react-native';
+import { AuthProvider } from './src/context/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
+import { initDB } from './path_to/violationStorage';
+import { syncViolations } from './path_to/sync';
+import NetInfo from '@react-native-community/netinfo';
 
 export default function App() {
   return (
@@ -15,5 +15,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-
-

@@ -4,6 +4,8 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { addViolation } from '../api/violations';
 import { API_URL } from '../api/config';
+import NetInfo from '@react-native-community/netinfo';
+import { saveViolationOffline, syncOfflineViolations } from '../utils/offlineStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AddViolationScreen() {
@@ -36,61 +38,81 @@ export default function AddViolationScreen() {
     }
   };
   const handleSubmit = async () => {
-    if (!description.trim()) {
-      return Alert.alert('Помилка', 'Опис не може бути порожнім');
-    }
-  
-    if (!location) {
-      return Alert.alert('Помилка', 'Не вдалося отримати геолокацію');
-    }
-  
-    try {
-        console.log('Starting request...');
-    console.log('Request URL:', `${API_URL}/violations`);
-    console.log('Token:', await AsyncStorage.getItem('token'));
-    console.log('Image URI:', image);
-    console.log('Location:', location);
-      setLoading(true);
-      
-      const formData = new FormData();
-      
-      formData.append('description', description);
-      formData.append('latitude', location.latitude.toString());
-      formData.append('longitude', location.longitude.toString());
+  if (!description.trim()) {
+    return Alert.alert('Помилка', 'Опис не може бути порожнім');
+  }
 
-      if (image) {
-        formData.append('image', {
-          uri: image,
-          type: 'image/jpeg',
-          name: 'violation_image.jpg'
-        });
-      }
-  
+  if (!location) {
+    return Alert.alert('Помилка', 'Не вдалося отримати геолокацію');
+  }
+
+  const token = await AsyncStorage.getItem('token');
+  const violationData = {
+    description,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    imageUri: image,
+  };
+
+  const formData = new FormData();
+  formData.append('description', description);
+  formData.append('latitude', location.latitude.toString());
+  formData.append('longitude', location.longitude.toString());
+
+  if (image) {
+    formData.append('image', {
+      uri: image,
+      type: 'image/jpeg',
+      name: 'violation_image.jpg',
+    });
+  }
+
+  try {
+    const netInfo = await NetInfo.fetch();
+
+    if (netInfo.isConnected) {
+      setLoading(true);
+
+      console.log('Starting request...');
+      console.log('Request URL:', `${API_URL}/violations`);
+      console.log('Token:', token);
+      console.log('Image URI:', image);
+      console.log('Location:', location);
+
       const response = await fetch(`${API_URL}/violations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${await AsyncStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`,
         },
-        body: formData
+        body: formData,
       });
-  
+
       const responseData = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(responseData.error || 'Помилка сервера');
       }
-  
+
       Alert.alert('Успіх', 'Правопорушення успішно додано!');
       setDescription('');
       setImage(null);
-  
-    } catch (err) {
-      Alert.alert('Помилка', err.message);
-    } finally {
-      setLoading(false);
+      await syncOfflineViolations(token, API_URL);
+    } else {
+      // офлайн режим
+      await saveViolationOffline(violationData);
+      Alert.alert('Немає інтернету', 'Збережено локально та буде відправлено пізніше.');
+      setDescription('');
+      setImage(null);
     }
+
+  } catch (err) {
+    await saveViolationOffline(violationData);
+    Alert.alert('Помилка', 'Дані збережено локально: ' + err.message);
+  } finally {
+    setLoading(false);
   }
+};
   return (
     <View style={{ padding: 20 }}>
       <Text>Опис правопорушення:</Text>

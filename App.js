@@ -45,18 +45,18 @@ export default function App() {
 
     start();
   }, []);
-  // useEffect(() => {
-  //   const resetDB = async () => {
-  //     try {
-  //       await deleteDatabase();
-  //       await new Promise(resolve => setTimeout(resolve, 500)); // Добавили задержку
-  //       await initializeDatabase();
-  //     } catch (e) {
-  //       console.error('[App] Ошибка сброса БД:', e);
-  //     }
-  //   };
-  //   resetDB();
-  // }, []);
+  useEffect(() => {
+    const resetDB = async () => {
+      try {
+        await deleteDatabase();
+        await new Promise(resolve => setTimeout(resolve, 500)); // Добавили задержку
+        await initializeDatabase();
+      } catch (e) {
+        console.error('[App] Ошибка сброса БД:', e);
+      }
+    };
+    resetDB();
+  }, []);
 
   return (
     <AuthProvider>

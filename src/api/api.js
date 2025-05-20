@@ -23,12 +23,4 @@ export const api = {
     return await response.json();
   },
 
-  checkServerHealth: async () => {
-    try {
-      await axios.get(`${API_URL}/healthcheck`, { timeout: 3000 });
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
 };

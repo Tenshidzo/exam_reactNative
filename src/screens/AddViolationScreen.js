@@ -3,11 +3,9 @@
   import * as Location from 'expo-location';
   import * as ImagePicker from 'expo-image-picker';
   import * as FileSystem from 'expo-file-system';
-  import NetInfo from '@react-native-community/netinfo';
   import AsyncStorage from '@react-native-async-storage/async-storage';
   import { API_URL } from '@env';
-  import { syncOfflineViolations, getCachedUserId } from '../utils/offlineStorage';
-  import { syncViolations } from '../utils/sync'; 
+  import { getCachedUserId } from '../utils/offlineStorage';
   import { saveViolationToDB } from '../utils/violationStorage';
   import { Buffer } from 'buffer';
   import pako from 'pako';

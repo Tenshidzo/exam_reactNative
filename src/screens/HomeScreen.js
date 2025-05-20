@@ -8,9 +8,6 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  ScrollView,
-  TextInput,
-  Button
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from '../context/AuthContext';

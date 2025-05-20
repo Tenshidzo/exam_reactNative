@@ -52,7 +52,7 @@ export default function App() {
   //       await new Promise(resolve => setTimeout(resolve, 500)); // Добавили задержку
   //       await initializeDatabase();
   //     } catch (e) {
-  //       console.error('[App] ❌ Ошибка сброса БД:', e);
+  //       console.error('[App] Ошибка сброса БД:', e);
   //     }
   //   };
   //   resetDB();

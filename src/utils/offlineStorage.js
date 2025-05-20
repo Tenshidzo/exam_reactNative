@@ -1,15 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import axios from 'axios';
+import {OFFLINE_REGISTRATIONS_KEY, VIOLATIONS_KEY, LOGINS_KEY, CACHED_VIOLATIONS, CACHED_LOGINS, DELETE_QUEUE_KEY} from '@env';
 
-const VIOLATIONS_KEY = 'offlineViolations';
-const LOGINS_KEY     = 'offlineLogins';
-const CACHED_VIOLATIONS = 'cachedViolations';
-const CACHED_LOGINS     = 'cachedLogins';
 
-/**
- * Сохранить новое нарушение в локальное хранилище
- */
 export const saveViolationOffline = async (violation) => {
   try {
     const raw  = await AsyncStorage.getItem(VIOLATIONS_KEY);
@@ -22,20 +16,18 @@ export const saveViolationOffline = async (violation) => {
   }
 };
 
-/**
- * Синхронизировать накопленные офлайн‑нарушения с сервером
- */
+
 export const syncOfflineViolations = async (token, apiUrl) => {
   try {
     const netInfo = await NetInfo.fetch();
     if (!netInfo.isConnected) {
-      console.log('[syncOfflineViolations] 🚫 No connection, aborting');
+      console.log('[syncOfflineViolations] No connection, aborting');
       return { synced: 0, failed: 0 };
     }
 
     const raw  = await AsyncStorage.getItem(VIOLATIONS_KEY);
     const list = raw ? JSON.parse(raw) : [];
-    console.log(`[syncOfflineViolations] 🔄 Found ${list.length} offline violation(s)`);
+    console.log(`[syncOfflineViolations] Found ${list.length} offline violation(s)`);
 
     const successful = [];
     const failed     = [];
@@ -70,14 +62,12 @@ export const syncOfflineViolations = async (token, apiUrl) => {
           throw new Error(`Status ${res.status}`);
         }
       } catch (err) {
-        console.error('[syncOfflineViolations] ❌ Failed to sync violation:', err.message);
+        console.error('[syncOfflineViolations] Failed to sync violation:', err.message);
         failed.push(violation);
       }
     }
-
-    // сохраняем только те, что не удалось синхронизировать
     await AsyncStorage.setItem(VIOLATIONS_KEY, JSON.stringify(failed));
-    console.log(`[syncOfflineViolations] 📊 ${successful.length} synced, ${failed.length} failed`);
+    console.log(`[syncOfflineViolations] ${successful.length} synced, ${failed.length} failed`);
     return { synced: successful.length, failed: failed.length };
   } catch (err) {
     console.error('[syncOfflineViolations] Sync error:', err);
@@ -85,37 +75,30 @@ export const syncOfflineViolations = async (token, apiUrl) => {
   }
 };
 export const getOfflineViolations = async () => {
-  const json = await AsyncStorage.getItem('offline_violations');
-  return json ? JSON.parse(json) : [];
-};
-/**
- * Сохранить попытку логина в локальное хранилище
- */
+ const json = await AsyncStorage.getItem(VIOLATIONS_KEY);   
+  return json ? JSON.parse(json) : [];};
 export const saveLoginOffline = async (login) => {
   try {
     const raw  = await AsyncStorage.getItem(LOGINS_KEY);
     const list = raw ? JSON.parse(raw) : [];
     list.push(login);
     await AsyncStorage.setItem(LOGINS_KEY, JSON.stringify(list));
-    console.log('[offlineStorage] ✔ saveLoginOffline:', login);
+    console.log('[offlineStorage] saveLoginOffline:', login);
   } catch (err) {
     console.error('[offlineStorage] saveLoginOffline error:', err);
   }
 };
 
-/**
- * Синхронизировать накопленные попытки логина с сервером
- */
 export const syncOfflineLogins = async (token, apiUrl) => {
   const net = await NetInfo.fetch();
   if (!net.isConnected) {
-    console.log('[syncOfflineLogins] 🚫 No connection, aborting');
+    console.log('[syncOfflineLogins] No connection, aborting');
     return { synced: 0, failed: 0 };
   }
 
   const raw  = await AsyncStorage.getItem(LOGINS_KEY);
   const list = raw ? JSON.parse(raw) : [];
-  console.log(`[syncOfflineLogins] 🔄 Found ${list.length} offline login attempt(s)`);
+  console.log(`[syncOfflineLogins] Found ${list.length} offline login attempt(s)`);
 
   const successful = [];
   const failed     = [];
@@ -135,19 +118,16 @@ export const syncOfflineLogins = async (token, apiUrl) => {
         throw new Error(`Status ${res.status}`);
       }
     } catch (err) {
-      console.error('[syncOfflineLogins] ❌ Failed to sync login:', err.message);
+      console.error('[syncOfflineLogins] Failed to sync login:', err.message);
       failed.push(login);
     }
   }
 
   await AsyncStorage.setItem(LOGINS_KEY, JSON.stringify(failed));
-  console.log(`[syncOfflineLogins] 📊 ${successful.length} synced, ${failed.length} failed`);
+  console.log(`[syncOfflineLogins] ${successful.length} synced, ${failed.length} failed`);
   return { synced: successful.length, failed: failed.length };
 };
 
-/**
- * Получить закешированные с сервера нарушения
- */
 export const fetchAndCacheViolations = async (token, apiUrl) => {
   try {
     const res = await axios.get(`${apiUrl}/violations`, {
@@ -165,10 +145,7 @@ export const fetchAndCacheViolations = async (token, apiUrl) => {
   }
 };
 
-/**
- * Получить закешированные с сервера логины
- * (предварительно реализуйте на сервере GET /sync/logins)
- */
+
 export const fetchAndCacheLogins = async (token, apiUrl) => {
   try {
     const res = await axios.get(`${apiUrl}/sync/logins`, {
@@ -186,24 +163,108 @@ export const fetchAndCacheLogins = async (token, apiUrl) => {
   }
 };
 
-/**
- * Получить из AsyncStorage последние кэшированные нарушения
- */
+
 export const getCachedViolations = async () => {
   try {
     const json = await AsyncStorage.getItem('violations_cache');
     return json ? JSON.parse(json) : [];
   } catch (e) {
-    console.warn('[offlineStorage] ❌ Ошибка при чтении из кэша:', e);
+    console.warn('[offlineStorage] Ошибка при чтении из кэша:', e);
     return [];
   }
 };
 
 
-/**
- * Получить из AsyncStorage последние кэшированные логины
- */
+
 export const getCachedLogins = async () => {
   const raw = await AsyncStorage.getItem(CACHED_LOGINS);
   return raw ? JSON.parse(raw) : [];
+};
+
+export const deleteOfflineViolation = async (id) => {
+  try {
+    const raw = await AsyncStorage.getItem('offlineViolations');
+    const list = raw ? JSON.parse(raw) : [];
+    const cleaned = list.filter(v => {
+      const generatedId = v.id != null ? v.id : `offline-${list.indexOf(v)}`;
+      return generatedId !== id;
+    });
+
+    await AsyncStorage.setItem('offlineViolations', JSON.stringify(cleaned));
+    console.log(`[offline] удалил ${id}, осталось ${cleaned.length}`);
+    return true;
+  } catch (e) {
+    console.error('[offline] deleteOfflineViolation error:', e);
+    return false;
+  }
+};
+export const saveOfflineRegistration = async (registration) => {
+  try {
+    const raw = await AsyncStorage.getItem(OFFLINE_REGISTRATIONS_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    list.push(registration);
+    await AsyncStorage.setItem(OFFLINE_REGISTRATIONS_KEY, JSON.stringify(list));
+    console.log('[offlineStorage] saveOfflineRegistration:', registration.email);
+  } catch (e) {
+    console.error('[offlineStorage] saveOfflineRegistration error:', e);
+  }
+};
+
+export const syncOfflineRegistrations = async (apiUrl) => {
+  const net = await NetInfo.fetch();
+  if (!net.isConnected) {
+    console.log('[syncOfflineRegistrations] No connection, aborting');
+    return { synced: 0, failed: 0 };
+  }
+
+  const raw = await AsyncStorage.getItem(OFFLINE_REGISTRATIONS_KEY);
+  const list = raw ? JSON.parse(raw) : [];
+
+  console.log(`[syncOfflineRegistrations] Found ${list.length} offline registration(s)`);
+
+  const successful = [];
+  const failed = [];
+
+  for (const reg of list) {
+    try {
+      const res = await axios.post(`${apiUrl}/register`, reg);
+      if (res.status === 200 || res.status === 201) {
+        console.log('[syncOfflineRegistrations] ✔ Synced registration:', reg.email);
+        successful.push(reg);
+      } else {
+        throw new Error(`Status ${res.status}`);
+      }
+    } catch (err) {
+      console.error('[syncOfflineRegistrations] Failed to sync registration:', reg.email, err.message);
+      failed.push(reg);
+    }
+  }
+
+  await AsyncStorage.setItem(OFFLINE_REGISTRATIONS_KEY, JSON.stringify(failed));
+  console.log(`[syncOfflineRegistrations] ${successful.length} synced, ${failed.length} failed`);
+  return { synced: successful.length, failed: failed.length };
+};
+export const getCachedUserId = async () => {
+  try {
+    const userId = await AsyncStorage.getItem('userId');
+    return userId || null;
+  } catch (err) {
+    console.error('[getCachedUserId] ❌ Ошибка чтения userId из кеша:', err);
+    return null;
+  }
+};
+export const queueDeletionForLater = async (violation) => {
+  try {
+    const raw = await AsyncStorage.getItem(DELETE_QUEUE_KEY);
+    const current = raw ? JSON.parse(raw) : [];
+
+    current.push({
+      description: violation.description,
+      date: violation.date
+    });
+
+    await AsyncStorage.setItem(DELETE_QUEUE_KEY, JSON.stringify(current));
+  } catch (err) {
+    console.error('[queueDeletionForLater] ❌', err);
+  }
 };

@@ -9,7 +9,7 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const onLogin = async () => {
-       console.log('[LoginScreen] ▶️ onLogin start', { email, password });
+       console.log('[LoginScreen] onLogin start', { email, password });
         try {
           setLoading(true);
          const result = await signIn({ email, password });
@@ -19,7 +19,7 @@ export default function LoginScreen({ navigation }) {
           Alert.alert('Помилка', err.message);
         } finally {
           setLoading(false);
-         console.log('[LoginScreen] ⏹️ loading false');
+         console.log('[LoginScreen] loading false');
         }
       };
     

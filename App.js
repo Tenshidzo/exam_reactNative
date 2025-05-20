@@ -2,11 +2,62 @@ import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { AuthProvider } from './src/context/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
-import { initDB } from './path_to/violationStorage';
-import { syncViolations } from './path_to/sync';
-import NetInfo from '@react-native-community/netinfo';
-
+import { syncViolations, syncFromServerToLocal, isServerReachable, syncQueuedDeletions } from './src/utils/sync';
+import { deleteDatabase, initDB } from './src/utils/violationStorage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function App() {
+  const initializeDatabase = async () => {
+    try {
+      console.log('[App] Инициализация базы данных...');
+      await initDB();
+      console.log('[App] База данных инициализирована');
+    } catch (e) {
+      console.error('[App] Ошибка инициализации БД:', e);
+    }
+  };
+  const synchronizeData = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.warn('[App] Токен не найден, пропуск синхронизации');
+        return;
+      }
+
+      const serverReachable = await isServerReachable(token);
+      if (!serverReachable) {
+        console.warn('[App] Сервер недоступен, синхронизация отменена');
+        return;
+      }
+
+      console.log('[App] 🔄 Сервер доступен, выполняем синхронизацию...');
+      await syncViolations();
+      await  syncQueuedDeletions(token);
+      console.log('[App] Синхронизация завершена');
+    } catch (err) {
+      console.error('[App] Ошибка при синхронизации:', err);
+    }
+  };
+  useEffect(() => {
+    const start = async () => {
+      await initializeDatabase();
+      await synchronizeData();
+    };
+
+    start();
+  }, []);
+  // useEffect(() => {
+  //   const resetDB = async () => {
+  //     try {
+  //       await deleteDatabase();
+  //       await new Promise(resolve => setTimeout(resolve, 500)); // Добавили задержку
+  //       await initializeDatabase();
+  //     } catch (e) {
+  //       console.error('[App] ❌ Ошибка сброса БД:', e);
+  //     }
+  //   };
+  //   resetDB();
+  // }, []);
+
   return (
     <AuthProvider>
       <NavigationContainer>

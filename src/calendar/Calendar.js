@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import Header from './Header';
 import Day from './Day';
-import { API_URL } from '../api/config';
+import { API_URL } from '@env';
+import { getAllLocalViolations, getImageBase64ById  } from '../utils/violationStorage';
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -21,30 +22,65 @@ const Calendar = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const isMounted = useRef(true);
 
-  const loadViolations = async () => {
-    try {
-      const month = currentDate.getMonth() + 1;
-      const year = currentDate.getFullYear();
+const loadViolations = async () => {
+  try {
+    const month = currentDate.getMonth() + 1;
+    const year = currentDate.getFullYear();
 
-      const response = await fetch(`${API_URL}/violations?month=${month}&year=${year}`);
-      if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
+    const response = await fetch(`${API_URL}/violations?month=${month}&year=${year}`);
 
-      const data = await response.json();
-
-      const map = {};
-      data.forEach(v => {
-        const day = new Date(v.date).getDate();
-        map[day] = true;
-      });
-
-      if (isMounted.current) {
-        setViolations(data);
-        setViolationsMap(map);
-      }
-    } catch (err) {
-      console.error('[Calendar] Ошибка загрузки:', err.message);
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
     }
-  };
+
+   const data = await response.json();
+    const transformed = data.map(v => ({
+      ...v,
+      imageUri: v.imageUri || v.image || v.imageUrl || null
+    }));
+    const map = {};
+    transformed.forEach(v => {
+      const day = new Date(v.date).getDate();
+      map[day] = true;
+    });
+    transformed.forEach(v => console.log('imageUri:', v.imageUri));
+    console.log('data:', data);
+        if (isMounted.current) {
+          setViolations(transformed);
+          setViolationsMap(map);
+          console.log('[Calendar] Данные загружены с сервера');
+        }
+      } catch (err) {
+        console.warn('[Calendar] Сервер недоступен, загружаем локальные данные:', err.message);
+        await loadLocalViolations(); 
+      }
+    };
+
+const loadLocalViolations = async () => {
+  try {
+    const data = await getAllLocalViolations();
+    const violationsWithImages = await Promise.all(
+      data.map(async (v) => {
+        const imageBase64 = await getImageBase64ById(v.id);
+        return {
+          ...v,
+          imageUri: imageBase64 ? `data:image/jpeg;base64,${imageBase64}` : null
+        };
+      })
+    );
+    const map = {};
+    violationsWithImages.forEach(v => {
+      const day = new Date(v.date).getDate();
+      map[day] = true;
+    });
+
+    setViolations(violationsWithImages);
+    setViolationsMap(map);
+  } catch (err) {
+    console.error('[Calendar] Ошибка при загрузке локальных данных:', err);
+  }
+};
+
 
   const handleDayPress = (day) => {
     const selected = violations.filter(v => {
@@ -61,7 +97,7 @@ const Calendar = () => {
   };
 
   const renderViolationItem = ({ item }) => {
-    const parsedDate = new Date(item.date.replace(' ', 'T') + 'Z');
+    const parsedDate = new Date(item.date);
 
     return (
       <View style={styles.item}>
@@ -76,13 +112,13 @@ const Calendar = () => {
             minute: '2-digit'
           })}
         </Text>
-        {item.imageUrl && (
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-        )}
+          {item.imageUri && (
+         <Image
+           source={{ uri: item.imageUri }}
+           style={styles.image}
+           resizeMode="cover"
+         />
+       )}
       </View>
     );
   };

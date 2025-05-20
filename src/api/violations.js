@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL } from '../api/config';
+import { API_URL } from '@env';
 
 export const addViolation = async ({ description, imageUrl, latitude, longitude }) => {
   const token = await AsyncStorage.getItem('token');

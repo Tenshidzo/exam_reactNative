@@ -1,4 +1,4 @@
-import { API_URL } from '../api/config.js';
+import { API_URL } from '@env';
 
 export const api = {
   login: async ({ email, password }) => {
@@ -21,5 +21,14 @@ export const api = {
     });
     if (!response.ok) throw new Error('Registration failed');
     return await response.json();
+  },
+
+  checkServerHealth: async () => {
+    try {
+      await axios.get(`${API_URL}/healthcheck`, { timeout: 3000 });
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 };

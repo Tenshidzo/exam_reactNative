@@ -1,13 +1,30 @@
-// PublicScreen.js
-import React from 'react';
+
+import React, {useState, useEffect} from 'react';
 import { View, Button, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import Calendar from '../calendar/Calendar';
 import { useNavigation } from '@react-navigation/native';
+import {API_URL} from '@env';
 
 export default function PublicScreen() {
   const navigation = useNavigation();
+  const [violations, setViolations] = useState([]);
+  const [loading, setLoading] = useState(true);
+    useEffect(() => {
+    const fetchViolations = async () => {
+      try {
+        const response = await fetch(`${API_URL}/violations/all`);
+        const data = await response.json();
+        setViolations(data);
+      } catch (error) {
+        console.error('Ошибка загрузки нарушений:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchViolations();
+  }, []);
   return (
     <View style={styles.container}>
       <MapView
@@ -19,11 +36,17 @@ export default function PublicScreen() {
           longitudeDelta: 0.0421,
         }}
       >
-        <Marker
-          coordinate={{ latitude: 50.4501, longitude: 30.5234 }}
-          title="Порушення"
-          description="Опис порушення"
-        />
+         {violations.map((violation) => (
+          <Marker
+            key={violation.id}
+            coordinate={{
+              latitude: parseFloat(violation.latitude),
+              longitude: parseFloat(violation.longitude),
+            }}
+            title={violation.description || 'Нарушение'}
+            description={new Date(violation.date).toLocaleString()}
+          />
+        ))}
       </MapView>
 
       <Calendar style={styles.calendar} />

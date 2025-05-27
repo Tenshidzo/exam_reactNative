@@ -55,7 +55,23 @@
         setImage(result.assets[0].uri);
       }
     };
+const takePhoto = async () => {
+  const permission = await ImagePicker.requestCameraPermissionsAsync();
+  if (permission.status !== 'granted') {
+    Alert.alert('Помилка', 'Доступ до камери заборонено');
+    return;
+  }
 
+  const result = await ImagePicker.launchCameraAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 0.8,
+  });
+
+  if (!result.canceled) {
+    console.log('[Camera] Фото зроблено:', result.assets[0].uri);
+    setImage(result.assets[0].uri);
+  }
+};
  const handleSubmit = async () => {
     console.log('[handleSubmit] Старт'); 
     if (!description.trim()) {
@@ -183,7 +199,7 @@
             borderRadius: 5
           }}
         />
-
+        <Button title="Зробити фото" onPress={takePhoto} />
         <Button title="Вибрати зображення" onPress={pickImage} />
         {image && (
           <Image

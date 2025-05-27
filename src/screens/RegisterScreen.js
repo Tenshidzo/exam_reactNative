@@ -18,20 +18,20 @@ export default function RegisterScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const { signUp } = useContext(AuthContext);
 
-  const handleRegister = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
-      return alert('Пожалуйста, заполните все поля');
-    }
-    try {
-      setLoading(true);
-      await signUp({ firstName, lastName, email, password });
-      navigation.navigate('HomeScreen');
-    } catch (error) {
-      alert('Ошибка регистрации');
-    } finally {
-      setLoading(false);
-    }
-  };
+const handleRegister = async () => {
+  if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
+    return Alert.alert('Ошибка', 'Пожалуйста, заполните все поля');
+  }
+  try {
+    setLoading(true);
+    await signUp({ firstName, lastName, email, password });
+    navigation.navigate('Home');
+  } catch (error) {
+    Alert.alert('Ошибка регистрации', error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <View style={styles.container}>

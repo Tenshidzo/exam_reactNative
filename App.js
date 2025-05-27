@@ -29,7 +29,7 @@ export default function App() {
         return;
       }
 
-      console.log('[App] 🔄 Сервер доступен, выполняем синхронизацию...');
+      console.log('[App] Сервер доступен, выполняем синхронизацию...');
       await syncViolations();
       await  syncQueuedDeletions(token);
       console.log('[App] Синхронизация завершена');
@@ -45,18 +45,7 @@ export default function App() {
 
     start();
   }, []);
-  useEffect(() => {
-    const resetDB = async () => {
-      try {
-        await deleteDatabase();
-        await new Promise(resolve => setTimeout(resolve, 500)); // Добавили задержку
-        await initializeDatabase();
-      } catch (e) {
-        console.error('[App] Ошибка сброса БД:', e);
-      }
-    };
-    resetDB();
-  }, []);
+
 
   return (
     <AuthProvider>

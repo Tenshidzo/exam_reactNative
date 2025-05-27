@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
 import axios from 'axios';
 import {OFFLINE_REGISTRATIONS_KEY, VIOLATIONS_KEY, LOGINS_KEY, CACHED_VIOLATIONS, CACHED_LOGINS, DELETE_QUEUE_KEY} from '@env';
 
@@ -19,12 +18,6 @@ export const saveViolationOffline = async (violation) => {
 
 export const syncOfflineViolations = async (token, apiUrl) => {
   try {
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      console.log('[syncOfflineViolations] No connection, aborting');
-      return { synced: 0, failed: 0 };
-    }
-
     const raw  = await AsyncStorage.getItem(VIOLATIONS_KEY);
     const list = raw ? JSON.parse(raw) : [];
     console.log(`[syncOfflineViolations] Found ${list.length} offline violation(s)`);

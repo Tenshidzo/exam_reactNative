@@ -1,26 +1,29 @@
 import { API_URL } from '@env';
 
+const makeRequest = async (url, method, body, authRequired = false) => {
+  const headers = {'Content-Type': 'application/json'};
+  if (authRequired) {
+    const token = await AsyncStorage.getItem('token');
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}${url}`, {
+    method,
+    headers,
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Request failed');
+  }
+
+  return response.json();
+};
+
 export const api = {
-  login: async ({ email, password }) => {
-    console.log('[Client] Отправка запроса на', `${API_URL}/login`);
-    console.log('[Client] Данные:', { email, password });
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    if (!response.ok) throw new Error('Login failed');
-    return await response.json();
-  },
-
-  register: async ({ firstName, lastName, email, password }) => {
-    const response = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ firstName, lastName, email, password })
-    });
-    if (!response.ok) throw new Error('Registration failed');
-    return await response.json();
-  },
-
+  login: (credentials) => makeRequest('/auth/login', 'POST', credentials),
+  register: (userData) => makeRequest('/auth/register', 'POST', userData),
+  addViolation: (data) => makeRequest('/violations', 'POST', data, true),
+  getViolations: () => makeRequest('/violations', 'GET')
 };

@@ -27,7 +27,7 @@ export const syncViolations = async () => {
   try {
     const token = await AsyncStorage.getItem('token');
     if (!token || token === 'offline-token') {
-      console.warn('⚠️ Недействительный токен');
+      console.warn('Недействительный токен');
       return;
     }
     const unsyncedViolations = await getUnsyncedViolations();
@@ -53,7 +53,7 @@ export const syncViolations = async () => {
           });
         }
 
-        console.log(`📤 Отправка на сервер: ID ${violation.id}`);
+        console.log(`Отправка на сервер: ID ${violation.id}`);
 
         const response = await axios.post(`${API_URL}/violations`, formData, {
           headers: {

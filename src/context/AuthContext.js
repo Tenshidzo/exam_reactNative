@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken]   = useState(null);
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(false);
+    const [state, setState] = useState({ token: null, userId: null, loading: true });
 
   const initAuth = async () => {
     setLoading(true);
@@ -37,12 +38,6 @@ useEffect(() => {
     console.log('[AuthContext] Syncing offline data…');
     await syncOfflineViolations(token, API_URL);
     await syncOfflineLogins(token, API_URL);
-
-    const net = await NetInfo.fetch();
-    if (!net.isConnected) {
-      console.log('[AuthContext] No network — will use cached data only');
-      return;
-    }
 
     console.log('[AuthContext] Server reachable — syncing registrations');
     await syncOfflineRegistrations(API_URL); 
@@ -73,51 +68,63 @@ useEffect(() => {
   };
 
   const signIn = async ({ email, password }) => {
-    try {
-      console.log('[AuthContext] Attempting online login');
-      const { token: tk, userId: uid, firstName, lastName } = await api.login({ email, password });
-      await AsyncStorage.setItem(TOKEN_KEY, tk);
-      await AsyncStorage.setItem(USERID_KEY, uid.toString());
-      setToken(tk);
-      setUserId(uid.toString());
-      await cacheUserOffline({ userId: uid, firstName, lastName, email, password });
-
-      return { token: tk, userId: uid };
-    } catch (err) {
-      if (err.response && err.response.status >= 400 && err.response.status < 500) {
-        console.warn('[AuthContext] Online login failed (4xx):', err.response.status);
-        throw err;
-      }
-      console.warn('[AuthContext] Server unavailable, falling back to offline login');
-
-      const raw   = await AsyncStorage.getItem(OFFLINE_USERS);
-      const users = raw ? JSON.parse(raw) : {};
-      const user  = users[email];
-      if (!user) {
-        throw new Error('Offline login failed: no local profile');
-      }
-      const hash = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        password
-      );
-      if (hash !== user.passwordHash) {
-        throw new Error('Offline login failed: wrong password');
-      }
-      const offlineToken = 'offline-token';
-      await AsyncStorage.setItem(TOKEN_KEY, offlineToken);
-      await AsyncStorage.setItem(USERID_KEY, user.userId.toString());
-      setToken(offlineToken);
-      setUserId(user.userId.toString());
-      await saveLoginOffline({
-        localId:  Date.now(),
-        timestamp: new Date().toISOString(),
-        success:  true,
-        userId:   user.userId
-      });
-
-      return { token: offlineToken, userId: user.userId };
+  try {
+    console.log('[AuthContext] Attempting online login');
+    const { token: tk, userId: uid, firstName, lastName } = await api.login({ email, password });
+    const currentToken = await AsyncStorage.getItem(TOKEN_KEY);
+    if (currentToken === 'offline-token') {
+      console.log('[AuthContext] Replacing offline-token with real token');
     }
-  };
+
+    await AsyncStorage.setItem(TOKEN_KEY, tk);
+    await AsyncStorage.setItem(USERID_KEY, uid.toString());
+    setToken(tk);
+    setUserId(uid.toString());
+
+    await cacheUserOffline({ userId: uid, firstName, lastName, email, password });
+
+    return { token: tk, userId: uid };
+  } catch (err) {
+    if (err.response && err.response.status >= 400 && err.response.status < 500) {
+      console.warn('[AuthContext] Online login failed (4xx):', err.response.status);
+      throw err;
+    }
+
+    console.warn('[AuthContext] Server unavailable, falling back to offline login');
+
+    const raw = await AsyncStorage.getItem(OFFLINE_USERS);
+    const users = raw ? JSON.parse(raw) : {};
+    const user = users[email];
+    if (!user) {
+      throw new Error('Offline login failed: no local profile');
+    }
+
+    const hash = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      password
+    );
+
+    if (hash !== user.passwordHash) {
+      throw new Error('Offline login failed: wrong password');
+    }
+
+    const offlineToken = 'offline-token';
+    await AsyncStorage.setItem(TOKEN_KEY, offlineToken);
+    await AsyncStorage.setItem(USERID_KEY, user.userId.toString());
+    setToken(offlineToken);
+    setUserId(user.userId.toString());
+
+    await saveLoginOffline({
+      localId: Date.now(),
+      timestamp: new Date().toISOString(),
+      success: true,
+      userId: user.userId
+    });
+
+    return { token: offlineToken, userId: user.userId };
+  }
+};
+
 const signUp = async ({ firstName, lastName, email, password }) => {
   console.log('[AuthContext] signUp online');
   try {
@@ -131,6 +138,8 @@ const signUp = async ({ firstName, lastName, email, password }) => {
 
     await cacheUserOffline({ userId: uid, firstName, lastName, email, password });
   } catch (error) {
+     console.log('❌ Ошибка регистрации:', error);
+  Alert.alert('Ошибка регистрации', error.message || 'Неизвестная ошибка');
     const isServerError = !error.response || error.response.status >= 500;
     if (isServerError) {
       await saveOfflineRegistration({ firstName, lastName, email, password, timestamp: new Date().toISOString() });
@@ -140,6 +149,8 @@ const signUp = async ({ firstName, lastName, email, password }) => {
       );
       return;
     }
+    const message = error.response?.data?.message || 'Не удалось зарегистрироваться';
+    throw new Error(message);
   }
 };
   const signOut = async () => {

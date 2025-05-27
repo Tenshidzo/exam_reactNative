@@ -123,6 +123,18 @@
 
   export const saveViolationToDB = async (violation) => {
     console.log('[DB] Сохранение нарушения:', violation.isSynced);
+    if (
+    !violation ||
+    typeof violation.description !== 'string' || violation.description.trim() === '' ||
+    typeof violation.userId !== 'string' || violation.userId.trim() === '' ||
+    typeof violation.latitude !== 'number' ||
+    typeof violation.longitude !== 'number' ||
+    isNaN(violation.latitude) || isNaN(violation.longitude)
+  ) {
+    const message = '[DB] Ошибка валидации: Некорректные данные нарушения';
+    console.warn(message, violation);
+    throw new Error(message);
+  }
     try {
       return await openAndClose(async (db) => {
         const result = await db.runAsync(

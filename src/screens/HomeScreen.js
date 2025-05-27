@@ -33,19 +33,6 @@ export default function HomeScreen({ navigation }) {
   const imageCache = useRef({});
   const isMounted = useRef(true);
   const [isServerOnline, setIsServerOnline] = useState(true);
-
-  const applyFilter = () => {
-  const filters = {};
-  if (filterDate.trim()) filters.date = filterDate.trim();
-  if (filterLat && filterLng && filterRadius) {
-    filters.lat = parseFloat(filterLat);
-    filters.lng = parseFloat(filterLng);
-    filters.radius = parseFloat(filterRadius);
-  }
-
-  fetchMy(false, filters);
-};
-
 const fetchMy = useCallback(async (forceLocal = false) => {
   if (!isMounted.current) return;
 
@@ -147,7 +134,6 @@ useEffect(() => {
         }
       } catch (e) {
         console.warn('Ошибка инициализации:', e);
-        await fetchData(true);
       }
     };
 
@@ -225,7 +211,6 @@ const onDelete = async (id, isLocal) => {
       <View style={styles.header}>
         <Text style={styles.title}>Мои правонарушения</Text>
         <TouchableOpacity onPress={signOut}>
-          <Text style={styles.logoutText}>Выйти</Text>
         </TouchableOpacity>
       </View>
       {loading && violations.length === 0
